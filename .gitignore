@@ -1,5 +1,4 @@
-# Object file
-*.o
-
-# Ada Library Information
-*.ali
+.env
+node_modules/
+backup/credentials/*.json
+*.log

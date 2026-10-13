@@ -1,0 +1,32 @@
+<% pageTitle = 'Dashboard'; active = 'dashboard'; %>
+<%- include('partials/layout-top', { pageTitle, active, admin }) %>
+
+<h1 class="serif">Admin Dashboard</h1>
+
+<div class="summary-cards">
+  <div class="summary-card"><div class="num" id="pendingApplicants">-</div><div class="label">Pending Applicants</div></div>
+  <div class="summary-card"><div class="num" id="activeMembers">-</div><div class="label">Active Members</div></div>
+  <div class="summary-card"><div class="num" id="pendingPayments">-</div><div class="label">Payments Awaiting Review</div></div>
+  <div class="summary-card"><div class="num" id="pendingExpenses">-</div><div class="label">Expenses Awaiting Review</div></div>
+</div>
+
+<div class="card">
+  <h2>Club Balance</h2>
+  <div style="font-size:34px; font-weight:800;" id="clubBalance">-</div>
+  <p class="subtle">Sum of all verified payments minus all approved expenses.</p>
+</div>
+
+<script>
+  (async () => {
+    const res = await fetch('/api/admin/summary');
+    if (!res.ok) return;
+    const d = await res.json();
+    document.getElementById('pendingApplicants').textContent = d.pendingApplicants;
+    document.getElementById('activeMembers').textContent = d.activeMembers;
+    document.getElementById('pendingPayments').textContent = d.pendingPayments;
+    document.getElementById('pendingExpenses').textContent = d.pendingExpenses;
+    document.getElementById('clubBalance').textContent = fmtMoney(d.clubBalance);
+  })();
+</script>
+
+<%- include('partials/layout-bottom') %>

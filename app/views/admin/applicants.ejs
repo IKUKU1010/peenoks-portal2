@@ -1,0 +1,66 @@
+<% pageTitle = 'Applicants'; active = 'applicants'; %>
+<%- include('partials/layout-top', { pageTitle, active, admin }) %>
+
+<h1 class="serif">New Member Applicants</h1>
+
+<div style="margin-bottom:16px;">
+  <select id="statusFilter">
+    <option value="pending">Pending</option>
+    <option value="approved">Approved</option>
+    <option value="rejected">Rejected</option>
+  </select>
+</div>
+
+<div id="resultBox" class="success-msg" style="display:none;"></div>
+
+<table>
+  <thead><tr><th>Photo</th><th>Name</th><th>Contact</th><th>Submitted</th><th>Actions</th></tr></thead>
+  <tbody id="rows"><tr><td colspan="5">Loading...</td></tr></tbody>
+</table>
+
+<script>
+  const statusFilter = document.getElementById('statusFilter');
+  const resultBox = document.getElementById('resultBox');
+
+  async function load() {
+    const res = await fetch('/api/admin/applicants?status=' + statusFilter.value);
+    const rows = await res.json();
+    document.getElementById('rows').innerHTML = rows.length ? rows.map(a => `
+      <tr>
+        <td>${a.photo_path ? `<img src="/api/admin/applicants/${a.applicant_id}/photo" style="width:48px;height:48px;object-fit:cover;border-radius:6px;">` : '-'}</td>
+        <td>${a.full_name}<br><span class="subtle">${a.nationality || ''}</span></td>
+        <td>${a.email}<br>${a.phone}</td>
+        <td>${fmtDate(a.created_at)}</td>
+        <td>
+          ${a.status === 'pending' ? `
+            <button class="btn" onclick="approve(${a.applicant_id})">Approve</button>
+            <button class="btn secondary" onclick="reject(${a.applicant_id})">Reject</button>
+          ` : badge(a.status)}
+        </td>
+      </tr>`).join('') : '<tr><td colspan="5">No applicants in this status.</td></tr>';
+  }
+
+  async function approve(id) {
+    if (!confirm('Approve this applicant and create a member account?')) return;
+    const res = await fetch(`/api/admin/applicants/${id}/approve`, { method: 'POST' });
+    const body = await res.json();
+    if (!res.ok) { alert(body.error); return; }
+    resultBox.innerHTML = `Approved! Member ID: <strong>${body.memberId}</strong> — Temporary password: <strong>${body.tempPassword}</strong><br>Please relay these credentials to the applicant securely.`;
+    resultBox.style.display = 'block';
+    load();
+  }
+
+  async function reject(id) {
+    const reason = prompt('Reason for rejection (optional):') || '';
+    const res = await fetch(`/api/admin/applicants/${id}/reject`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason })
+    });
+    if (!res.ok) { const b = await res.json(); alert(b.error); return; }
+    load();
+  }
+
+  statusFilter.addEventListener('change', load);
+  load();
+</script>
+
+<%- include('partials/layout-bottom') %>

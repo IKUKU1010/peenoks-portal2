@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact - PENOKS Neighborhood Friends</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+</head>
+<body>
+
+<header class="navbar">
+  <div class="brand"><img src="/assets/logo.png" alt="PENOKS logo"></div>
+  <nav>
+    <a href="/index.html">Home</a>
+    <a href="/about.html">About</a>
+    <a href="/events.html">Events</a>
+    <a href="/news.html">News</a>
+    <a href="/club-constitution.html" class="nav-cta">Club Constitution</a>
+  </nav>
+  <a class="contact-btn" href="/contact.html">Contact</a>
+</header>
+
+<section class="page-section">
+  <div class="grid-2">
+    <div>
+      <h1 class="serif">Contact Us</h1>
+      <p class="subtle">Get in Touch</p>
+      <div id="errorBox" class="error-msg" style="display:none;"></div>
+      <div id="successBox" class="success-msg" style="display:none;"></div>
+      <form id="contactForm">
+        <div class="form-row">
+          <div><label>First name *</label><input required name="firstName"></div>
+          <div><label>Last name *</label><input required name="lastName"></div>
+        </div>
+        <label>Email *</label>
+        <input required type="email" name="email">
+        <label>Message</label>
+        <textarea name="message"></textarea>
+        <button class="btn" type="submit" id="sendBtn">Send</button>
+      </form>
+    </div>
+    <div>
+      <p>Feel free to reach out with any questions about membership, events, or the community.</p>
+      <p><strong>tel:</strong> 01433-4456</p>
+      <p><strong>Email:</strong> contact@penoksa.me</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  const form = document.getElementById('contactForm');
+  const errorBox = document.getElementById('errorBox');
+  const successBox = document.getElementById('successBox');
+  const sendBtn = document.getElementById('sendBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorBox.style.display = 'none';
+    successBox.style.display = 'none';
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
+    const data = Object.fromEntries(new FormData(form));
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Could not send message');
+      successBox.textContent = 'Thanks for reaching out! We\'ll get back to you soon.';
+      successBox.style.display = 'block';
+      form.reset();
+    } catch (err) {
+      errorBox.textContent = err.message;
+      errorBox.style.display = 'block';
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+    }
+  });
+</script>
+
+<footer class="site-footer">
+  <div>&copy; <span class="footer-year"></span> PENOKS Neighborhood Friends. All rights reserved.</div>
+  <div class="footer-center">Powered by: GewenchiTech</div>
+  <div class="footer-right"><a href="/privacy-policy.html">Privacy Policy</a><a href="/club-constitution.html">Club Constitution</a></div>
+</footer>
+<script src="/js/nav.js"></script>
+<script src="/js/footer.js"></script>
+</body>
+</html>

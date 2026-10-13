@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PENOKS Neighborhood Friends</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .hero {
+    background: linear-gradient(rgba(30,30,20,0.15), rgba(30,30,20,0.35)), url('/assets/hero.jpg');
+  }
+</style>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+</head>
+<body>
+
+<header class="navbar">
+  <div class="brand">
+    <img src="/assets/logo.png" alt="PENOKS logo">
+  </div>
+  <nav>
+    <a href="/index.html" class="active">Home</a>
+    <a href="/about.html">About</a>
+    <a href="/events.html">Events</a>
+    <a href="/news.html">News</a>
+    <a href="/club-constitution.html" class="nav-cta">Club Constitution</a>
+  </nav>
+  <a class="contact-btn" href="/contact.html">Contact</a>
+</header>
+
+<section class="hero">
+  <h1>PENOKS NEIGHBORHOOD FRIENDS</h1>
+  <div class="gallery-slideshow" id="gallerySlideshow">
+    <div class="slideshow-track" id="slideshowTrack">
+      <div class="slide"><img src="/assets/gallery/gallery-1.jpg" alt="Community gathering"></div>
+      <div class="slide"><img src="/assets/gallery/gallery-2.jpg" alt="Easter celebration"></div>
+      <div class="slide"><img src="/assets/gallery/gallery-3.jpg" alt="Umuaga visit"></div>
+      <div class="slide"><img src="/assets/gallery/gallery-4.jpg" alt="Vallo visit"></div>
+      <div class="slide"><img src="/assets/gallery/gallery-5.jpg" alt="Community livestock"></div>
+    </div>
+    <button class="slide-nav prev" id="slidePrev" aria-label="Previous photo">&#8249;</button>
+    <button class="slide-nav next" id="slideNext" aria-label="Next photo">&#8250;</button>
+    <div class="slide-dots" id="slideDots"></div>
+  </div>
+
+  <div class="hero-actions">
+    <a class="pill-btn dark" href="/submit-payment.html">Submit Payment</a>
+    <a class="pill-btn dark" href="/submit-expenses.html">Submit Expenses</a>
+  </div>
+</section>
+
+<section class="page-section" style="text-align:center; padding-top:20px;">
+  <h1 class="serif">Join Our Community</h1>
+  <p class="subtle">Members enjoy a private dashboard with their profile and financial history.</p>
+  <div style="display:flex; gap:20px; justify-content:center; margin-top:24px; flex-wrap:wrap;">
+    <a class="btn" href="/login.html">Member Login</a>
+    <a class="btn secondary" id="applyBtn" href="#">New Member? Apply Here</a>
+  </div>
+</section>
+
+<script>
+  // "New members apply" opens the requirements PDF first, then links on to the application form
+  document.getElementById('applyBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.open('/membership-requirements.pdf', '_blank');
+    window.location.href = '/member-apply.html';
+  });
+</script>
+
+<footer class="site-footer">
+  <div>&copy; <span class="footer-year"></span> PENOKS Neighborhood Friends. All rights reserved.</div>
+  <div class="footer-center">Powered by: GewenchiTech</div>
+  <div class="footer-right"><a href="/privacy-policy.html">Privacy Policy</a><a href="/club-constitution.html">Club Constitution</a></div>
+</footer>
+
+  <script src="/js/nav.js"></script>
+  <script src="/js/gallery-slideshow.js"></script>
+  <script src="/js/footer.js"></script>
+</body>
+</html>

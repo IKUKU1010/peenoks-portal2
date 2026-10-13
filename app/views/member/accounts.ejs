@@ -1,0 +1,93 @@
+<% pageTitle = 'Club Accounts'; active = 'accounts'; %>
+<%- include('partials/layout-top', { pageTitle, active }) %>
+
+<h1 class="serif">Club Accounts</h1>
+<p class="subtle">View only. This ledger includes every verified payment and approved expense for the whole club.</p>
+
+<div class="card" style="padding:18px 24px;">
+  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;" id="presetButtons">
+    <button class="btn secondary" data-preset="7">Last 7 Days</button>
+    <button class="btn secondary" data-preset="30">Last 30 Days</button>
+    <button class="btn secondary" data-preset="90">Last 90 Days</button>
+    <button class="btn secondary" data-preset="year">This Year</button>
+    <button class="btn secondary" data-preset="all">All Time</button>
+  </div>
+  <div style="display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap;">
+    <div><label>From</label><input type="date" id="fromDate" style="margin-bottom:0;"></div>
+    <div><label>To</label><input type="date" id="toDate" style="margin-bottom:0;"></div>
+    <button class="btn" id="applyRange" style="height:42px;">Apply Range</button>
+  </div>
+  <p class="subtle" id="rangeSummary" style="margin-top:12px; margin-bottom:0;"></p>
+</div>
+
+<div class="summary-cards" style="grid-template-columns: repeat(3,1fr);">
+  <div class="summary-card"><div class="num" id="totalCredit">-</div><div class="label">Total Payments Received</div></div>
+  <div class="summary-card"><div class="num" id="totalDebit">-</div><div class="label">Total Expenses Approved</div></div>
+  <div class="summary-card"><div class="num" id="balance">-</div><div class="label">Club Balance</div></div>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Date</th><th>Type</th><th>Member</th><th>Amount</th><th>Description</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="5">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+<script>
+  function isoDate(d) { return d.toISOString().slice(0, 10); }
+
+  function applyPreset(preset) {
+    const today = new Date();
+    let from = null, to = null;
+    if (preset === '7' || preset === '30' || preset === '90') {
+      to = isoDate(today);
+      const start = new Date(today);
+      start.setDate(start.getDate() - Number(preset));
+      from = isoDate(start);
+    } else if (preset === 'year') {
+      from = `${today.getFullYear()}-01-01`;
+      to = isoDate(today);
+    } else if (preset === 'all') {
+      from = ''; to = '';
+    }
+    document.getElementById('fromDate').value = from || '';
+    document.getElementById('toDate').value = to || '';
+    load();
+  }
+
+  document.getElementById('presetButtons').addEventListener('click', (e) => {
+    if (e.target.dataset.preset) applyPreset(e.target.dataset.preset);
+  });
+  document.getElementById('applyRange').addEventListener('click', load);
+
+  async function load() {
+    const from = document.getElementById('fromDate').value;
+    const to = document.getElementById('toDate').value;
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+
+    const res = await fetch('/api/member/ledger?' + params.toString());
+    if (!res.ok) { window.location.href = '/login.html'; return; }
+    const d = await res.json();
+
+    document.getElementById('rangeSummary').textContent = (d.from || d.to)
+      ? `Showing ${d.from || 'the beginning'} through ${d.to || 'today'}.`
+      : 'Showing all recorded transactions.';
+
+    document.getElementById('totalCredit').textContent = fmtMoney(d.total_credit);
+    document.getElementById('totalDebit').textContent = fmtMoney(d.total_debit);
+    document.getElementById('balance').textContent = fmtMoney(d.total_credit - d.total_debit);
+    document.getElementById('rows').innerHTML = d.entries.length ? d.entries.map(e => `
+      <tr>
+        <td>${fmtDay(e.txn_date)}</td>
+        <td>${e.entry_type === 'credit' ? '<span class="badge active">Payment</span>' : '<span class="badge rejected">Expense</span>'}</td>
+        <td>${e.member_name || '-'}</td>
+        <td>${fmtMoney(e.amount)}</td>
+        <td>${e.description || '-'}</td>
+      </tr>`).join('') : '<tr><td colspan="5">No ledger entries yet.</td></tr>';
+  }
+  load();
+</script>
+
+<%- include('partials/layout-bottom') %>

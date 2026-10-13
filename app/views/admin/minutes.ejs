@@ -1,0 +1,86 @@
+<% pageTitle = 'Meeting Minutes'; active = 'minutes'; %>
+<%- include('partials/layout-top', { pageTitle, active, admin }) %>
+
+<h1 class="serif">Meeting Minutes</h1>
+<p class="subtle">Upload the minutes of a meeting as a PDF. Members can read it from the <strong>Meeting Minutes</strong> page of their dashboard (view only, no download button).</p>
+
+<div class="card">
+  <h2>Upload New Minutes</h2>
+  <div id="formError" class="error-msg" style="display:none;"></div>
+  <div id="formSuccess" class="success-msg" style="display:none;"></div>
+  <form id="uploadForm">
+    <label>Title</label>
+    <input type="text" id="title" maxlength="200" placeholder="e.g. General Meeting - October 2026" required>
+    <label>Meeting Date</label>
+    <input type="date" id="meetingDate" required>
+    <label>PDF File (max 20MB)</label>
+    <input type="file" id="pdfFile" accept="application/pdf,.pdf" required>
+    <button class="btn" type="submit" id="uploadBtn">Upload &amp; Publish to Members</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Uploaded Minutes</h2>
+  <table>
+    <thead><tr><th>Meeting Date</th><th>Title</th><th>File</th><th>Uploaded</th><th></th></tr></thead>
+    <tbody id="rows"><tr><td colspan="5">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+<script>
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  async function load() {
+    const res = await fetch('/api/admin/minutes');
+    if (!res.ok) { window.location.href = '/admin/login.html'; return; }
+    const list = await res.json();
+    document.getElementById('rows').innerHTML = list.length ? list.map(m => `
+      <tr>
+        <td>${fmtDay(m.meeting_date)}</td>
+        <td>${esc(m.title)}</td>
+        <td><a href="/api/admin/minutes/${m.minutes_id}/file" target="_blank" rel="noopener" style="text-decoration:underline;">${esc(m.original_name || 'View PDF')}</a></td>
+        <td>${fmtDate(m.created_at)}</td>
+        <td><button class="btn secondary" data-del="${m.minutes_id}" data-title="${esc(m.title)}">Delete</button></td>
+      </tr>`).join('') : '<tr><td colspan="5">No meeting minutes uploaded yet.</td></tr>';
+  }
+
+  document.getElementById('rows').addEventListener('click', async (e) => {
+    const id = e.target.dataset && e.target.dataset.del;
+    if (!id) return;
+    if (!confirm(`Delete "${e.target.dataset.title}"? Members will no longer be able to see it.`)) return;
+    const res = await fetch('/api/admin/minutes/' + id, { method: 'DELETE' });
+    if (!res.ok) { const b = await res.json().catch(() => ({})); alert(b.error || 'Could not delete.'); return; }
+    load();
+  });
+
+  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = document.getElementById('formError'), ok = document.getElementById('formSuccess'), btn = document.getElementById('uploadBtn');
+    err.style.display = ok.style.display = 'none';
+    const file = document.getElementById('pdfFile').files[0];
+    if (!file) { err.textContent = 'Please choose a PDF file.'; err.style.display = 'block'; return; }
+
+    const fd = new FormData();
+    fd.append('title', document.getElementById('title').value);
+    fd.append('meeting_date', document.getElementById('meetingDate').value);
+    fd.append('minutes_pdf', file);
+
+    btn.disabled = true; btn.textContent = 'Uploading...';
+    try {
+      const res = await fetch('/api/admin/minutes', { method: 'POST', body: fd });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || 'Upload failed');
+      ok.textContent = 'Minutes uploaded. Members can now see them on their dashboard.';
+      ok.style.display = 'block';
+      e.target.reset();
+      load();
+    } catch (ex) {
+      err.textContent = ex.message; err.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Upload & Publish to Members';
+    }
+  });
+  load();
+</script>
+
+<%- include('partials/layout-bottom') %>

@@ -1,0 +1,39 @@
+<% pageTitle = 'Members'; active = 'members'; %>
+<%- include('partials/layout-top', { pageTitle, active, admin }) %>
+
+<h1 class="serif">Members</h1>
+
+<table>
+  <thead><tr><th>Member ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+  <tbody id="rows"><tr><td colspan="7">Loading...</td></tr></tbody>
+</table>
+
+<script>
+  async function load() {
+    const res = await fetch('/api/admin/members');
+    const rows = await res.json();
+    document.getElementById('rows').innerHTML = rows.length ? rows.map(m => `
+      <tr>
+        <td>${m.member_id}</td><td>${m.full_name}</td><td>${m.email || '-'}</td><td>${m.phone || '-'}</td>
+        <td>${badge(m.status)}</td><td>${fmtDate(m.joined_at)}</td>
+        <td>
+          <a class="btn secondary" href="/admin/members/${m.member_id}" style="margin-right:6px;">View</a>
+          ${m.status === 'active'
+            ? `<button class="btn secondary" onclick="setStatus('${m.member_id}','suspended')">Suspend</button>`
+            : `<button class="btn" onclick="setStatus('${m.member_id}','active')">Reactivate</button>`}
+        </td>
+      </tr>`).join('') : '<tr><td colspan="7">No members yet.</td></tr>';
+  }
+
+  async function setStatus(memberId, status) {
+    const res = await fetch(`/api/admin/members/${memberId}/status`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
+    });
+    if (!res.ok) { const b = await res.json(); alert(b.error); return; }
+    load();
+  }
+
+  load();
+</script>
+
+<%- include('partials/layout-bottom') %>

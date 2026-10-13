@@ -1,0 +1,60 @@
+<% pageTitle = 'Expenses'; active = 'expenses'; %>
+<%- include('partials/layout-top', { pageTitle, active, admin }) %>
+
+<h1 class="serif">Submitted Expense Requests</h1>
+
+<div style="margin-bottom:16px;">
+  <select id="statusFilter">
+    <option value="pending">Pending</option>
+    <option value="approved">Approved</option>
+    <option value="rejected">Rejected</option>
+  </select>
+</div>
+
+<table>
+  <thead><tr><th>Expense ID</th><th>Member</th><th>Purpose</th><th>Amount</th><th>Budget Sheet</th><th>Expense Date</th><th>Actions</th></tr></thead>
+  <tbody id="rows"><tr><td colspan="7">Loading...</td></tr></tbody>
+</table>
+
+<script>
+  const statusFilter = document.getElementById('statusFilter');
+
+  async function load() {
+    const res = await fetch('/api/admin/expenses?status=' + statusFilter.value);
+    const rows = await res.json();
+    document.getElementById('rows').innerHTML = rows.length ? rows.map(e => `
+      <tr>
+        <td>${e.expense_id}</td>
+        <td>${e.member_name}<br><span class="subtle">${e.member_id}</span></td>
+        <td>${e.purpose}</td><td>${fmtMoney(e.amount)}</td>
+        <td>${e.budget_sheet_path ? `<a href="/api/admin/file/budget/${e.budget_sheet_path.split('/').pop()}" target="_blank">View</a>` : '-'}</td>
+        <td>${fmtDay(e.expense_date)}</td>
+        <td>
+          ${e.status === 'pending' ? `
+            <button class="btn" onclick="approve('${e.expense_id}')">Approve</button>
+            <button class="btn secondary" onclick="reject('${e.expense_id}')">Reject</button>
+          ` : badge(e.status)}
+        </td>
+      </tr>`).join('') : '<tr><td colspan="7">No expense requests in this status.</td></tr>';
+  }
+
+  async function approve(id) {
+    const res = await fetch(`/api/admin/expenses/${id}/approve`, { method: 'POST' });
+    if (!res.ok) { const b = await res.json(); alert(b.error); return; }
+    load();
+  }
+
+  async function reject(id) {
+    const note = prompt('Reason for rejection (optional):') || '';
+    const res = await fetch(`/api/admin/expenses/${id}/reject`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note })
+    });
+    if (!res.ok) { const b = await res.json(); alert(b.error); return; }
+    load();
+  }
+
+  statusFilter.addEventListener('change', load);
+  load();
+</script>
+
+<%- include('partials/layout-bottom') %>

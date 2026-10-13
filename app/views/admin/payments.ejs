@@ -1,0 +1,60 @@
+<% pageTitle = 'Payments'; active = 'payments'; %>
+<%- include('partials/layout-top', { pageTitle, active, admin }) %>
+
+<h1 class="serif">Submitted Payments</h1>
+
+<div style="margin-bottom:16px;">
+  <select id="statusFilter">
+    <option value="pending">Pending</option>
+    <option value="verified">Verified</option>
+    <option value="rejected">Rejected</option>
+  </select>
+</div>
+
+<table>
+  <thead><tr><th>Payment ID</th><th>Member</th><th>Purpose</th><th>Amount</th><th>Receipt</th><th>Payment Date</th><th>Actions</th></tr></thead>
+  <tbody id="rows"><tr><td colspan="7">Loading...</td></tr></tbody>
+</table>
+
+<script>
+  const statusFilter = document.getElementById('statusFilter');
+
+  async function load() {
+    const res = await fetch('/api/admin/payments?status=' + statusFilter.value);
+    const rows = await res.json();
+    document.getElementById('rows').innerHTML = rows.length ? rows.map(p => `
+      <tr>
+        <td>${p.payment_id}</td>
+        <td>${p.member_name}<br><span class="subtle">${p.member_id}</span></td>
+        <td>${p.purpose}</td><td>${fmtMoney(p.amount)}</td>
+        <td>${p.receipt_path ? `<a href="/api/admin/file/receipt/${p.receipt_path.split('/').pop()}" target="_blank">View</a>` : '-'}</td>
+        <td>${fmtDay(p.payment_date)}</td>
+        <td>
+          ${p.status === 'pending' ? `
+            <button class="btn" onclick="verify('${p.payment_id}')">Verify</button>
+            <button class="btn secondary" onclick="reject('${p.payment_id}')">Reject</button>
+          ` : badge(p.status)}
+        </td>
+      </tr>`).join('') : '<tr><td colspan="7">No payments in this status.</td></tr>';
+  }
+
+  async function verify(id) {
+    const res = await fetch(`/api/admin/payments/${id}/verify`, { method: 'POST' });
+    if (!res.ok) { const b = await res.json(); alert(b.error); return; }
+    load();
+  }
+
+  async function reject(id) {
+    const note = prompt('Reason for rejection (optional):') || '';
+    const res = await fetch(`/api/admin/payments/${id}/reject`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note })
+    });
+    if (!res.ok) { const b = await res.json(); alert(b.error); return; }
+    load();
+  }
+
+  statusFilter.addEventListener('change', load);
+  load();
+</script>
+
+<%- include('partials/layout-bottom') %>

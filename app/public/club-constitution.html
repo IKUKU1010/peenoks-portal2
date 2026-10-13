@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Club Constitution - PENOKS Neighborhood Friends</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .gate-wrap {
+    max-width: 480px;
+    margin: 60px auto;
+    background: var(--white);
+    padding: 36px;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+  }
+  .viewer-wrap {
+    max-width: 900px;
+    margin: 30px auto 60px;
+    padding: 0 20px;
+  }
+  .viewer-note {
+    background: #fbf3d9;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+  #pdfPages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #pdfPages canvas {
+    max-width: 100%;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    border-radius: 4px;
+  }
+</style>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+</head>
+<body>
+
+<header class="navbar">
+  <div class="brand"><img src="/assets/logo.png" alt="PENOKS logo"></div>
+  <nav>
+    <a href="/index.html">Home</a><a href="/about.html">About</a>
+    <a href="/events.html">Events</a><a href="/news.html">News</a>
+  </nav>
+  <a class="contact-btn" href="/contact.html">Contact</a>
+</header>
+
+<div id="gateWrap" class="gate-wrap">
+  <h1 style="font-family:Georgia, serif; font-weight:400; margin-top:0;">Club Constitution</h1>
+  <p class="subtle">
+    This document is available to PENOKS members only. Enter your Member ID
+    or your account password to view it.
+  </p>
+  <div id="errorBox" class="error-msg" style="display:none;"></div>
+  <form id="gateForm">
+    <label>Member ID or Password</label>
+    <input type="password" id="secretInput" autocomplete="off" required>
+    <button class="btn" type="submit" id="unlockBtn" style="width:100%;">View Document</button>
+  </form>
+</div>
+
+<div id="viewerWrap" class="viewer-wrap" style="display:none;">
+  <div class="viewer-note">
+    This document is for viewing only. Downloading, printing, and copying
+    are disabled. Your access expires after 20 minutes of being granted.
+  </div>
+  <div id="pdfStatus" class="subtle">Loading document...</div>
+  <div id="pdfPages"></div>
+</div>
+
+<footer class="site-footer">
+  <div>&copy; <span class="footer-year"></span> PENOKS Neighborhood Friends. All rights reserved.</div>
+  <div class="footer-center">Powered by: GewenchiTech</div>
+  <div class="footer-right"><a href="/privacy-policy.html">Privacy Policy</a><a href="/club-constitution.html">Club Constitution</a></div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/footer.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const gateForm = document.getElementById('gateForm');
+  const errorBox = document.getElementById('errorBox');
+  const unlockBtn = document.getElementById('unlockBtn');
+  const gateWrap = document.getElementById('gateWrap');
+  const viewerWrap = document.getElementById('viewerWrap');
+  const pdfStatus = document.getElementById('pdfStatus');
+  const pdfPages = document.getElementById('pdfPages');
+
+  gateForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorBox.style.display = 'none';
+    unlockBtn.disabled = true;
+    unlockBtn.textContent = 'Checking...';
+
+    try {
+      const secret = document.getElementById('secretInput').value;
+      const res = await fetch('/api/constitution/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret })
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Could not verify credentials');
+
+      gateWrap.style.display = 'none';
+      viewerWrap.style.display = 'block';
+      await loadAndRenderPdf();
+    } catch (err) {
+      errorBox.textContent = err.message;
+      errorBox.style.display = 'block';
+    } finally {
+      unlockBtn.disabled = false;
+      unlockBtn.textContent = 'View Document';
+    }
+  });
+
+  async function loadAndRenderPdf() {
+    try {
+      const res = await fetch('/api/constitution/view', { credentials: 'include' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Could not load the document.');
+      }
+      const arrayBuffer = await res.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+      pdfStatus.style.display = 'none';
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.4 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        pdfPages.appendChild(canvas);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      }
+    } catch (err) {
+      pdfStatus.textContent = err.message || 'Could not load the document. Please go back and try again.';
+    }
+  }
+
+  // Best-effort deterrents only — a browser can never fully prevent a
+  // determined user from capturing on-screen content.
+  document.addEventListener('contextmenu', (e) => {
+    if (viewerWrap.style.display !== 'none') e.preventDefault();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (viewerWrap.style.display === 'none') return;
+    const key = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && (key === 'p' || key === 's')) e.preventDefault();
+  });
+</script>
+
+</body>
+</html>

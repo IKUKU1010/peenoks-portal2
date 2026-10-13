@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submit Payment - PENOKS Neighborhood Friends</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+</head>
+<body>
+
+<header class="navbar">
+  <div class="brand"><img src="/assets/logo.png" alt="PENOKS logo"></div>
+  <nav><a href="/index.html">Home</a><a href="/about.html">About</a><a href="/club-constitution.html" class="nav-cta">Club Constitution</a></nav>
+  <a class="contact-btn" href="/contact.html">Contact</a>
+</header>
+
+<section class="page-section" style="max-width:640px;">
+  <h1 class="serif">Submit Payment</h1>
+  <p class="subtle">This payment will be reviewed by an admin before it reflects in your dashboard balance.</p>
+
+  <div id="errorBox" class="error-msg" style="display:none;"></div>
+  <div id="successBox" class="success-msg" style="display:none;"></div>
+
+  <form id="paymentForm" class="card">
+    <label>Names *</label>
+    <input name="names" required>
+
+    <label>Member Number *</label>
+    <input name="memberNumber" placeholder="PNK-0001" required>
+
+    <label>Purpose of Payment *</label>
+    <input name="purpose" required>
+
+    <label>Amount Paid (₦) *</label>
+    <input name="amount" type="number" min="0.01" step="0.01" required>
+
+    <label>Date of Payment *</label>
+    <input name="paymentDate" id="paymentDate" type="date" required>
+
+    <label>Payment Receipt (attachment)</label>
+    <input name="receipt" type="file" accept="image/*,.pdf">
+
+    <button class="btn" type="submit" style="width:100%;">Submit Payment</button>
+  </form>
+</section>
+
+<script>
+  // Default the date to today in the visitor's local time zone (not UTC)
+  function localToday() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  const dateInput = document.getElementById('paymentDate');
+  dateInput.value = localToday();
+  dateInput.max = localToday();
+
+  const form = document.getElementById('paymentForm');
+  const errorBox = document.getElementById('errorBox');
+  const successBox = document.getElementById('successBox');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorBox.style.display = 'none';
+    successBox.style.display = 'none';
+    const fd = new FormData(form);
+    try {
+      const res = await fetch('/api/payments', { method: 'POST', body: fd });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Submission failed');
+      successBox.textContent = `Payment submitted! Reference: ${body.paymentId}. It is now pending admin verification.`;
+      successBox.style.display = 'block';
+      form.reset();
+      dateInput.value = localToday();
+    } catch (err) {
+      errorBox.textContent = err.message;
+      errorBox.style.display = 'block';
+    }
+  });
+</script>
+
+<footer class="site-footer">
+  <div>&copy; <span class="footer-year"></span> PENOKS Neighborhood Friends. All rights reserved.</div>
+  <div class="footer-center">Powered by: GewenchiTech</div>
+  <div class="footer-right"><a href="/privacy-policy.html">Privacy Policy</a><a href="/club-constitution.html">Club Constitution</a></div>
+</footer>
+<script src="/js/nav.js"></script>
+<script src="/js/footer.js"></script>
+</body>
+</html>

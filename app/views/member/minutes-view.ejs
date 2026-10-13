@@ -1,0 +1,67 @@
+<% pageTitle = 'Meeting Minutes'; active = 'minutes'; %>
+<%- include('partials/layout-top', { pageTitle, active }) %>
+
+<style>
+  .viewer-note { background:#fbf3d9; padding:12px 16px; border-radius:8px; font-size:14px; margin-bottom:18px; }
+  #pdfPages { display:flex; flex-direction:column; align-items:center; gap:20px; user-select:none; -webkit-user-select:none; }
+  #pdfPages canvas { max-width:100%; height:auto; box-shadow:0 2px 10px rgba(0,0,0,0.15); border-radius:4px; }
+</style>
+
+<p><a href="/meeting-minutes" style="text-decoration:underline;">&larr; All meeting minutes</a></p>
+<h1 class="serif" id="docTitle" style="margin-bottom:4px;">Meeting Minutes</h1>
+<p class="subtle" id="docDate"></p>
+
+<div class="viewer-note">This document is for viewing only. Downloading, printing, and copying are disabled.</div>
+<div id="pdfStatus" class="subtle">Loading document...</div>
+<div id="pdfPages"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const id = <%= minutesId %>;
+  const pdfStatus = document.getElementById('pdfStatus');
+
+  (async () => {
+    try {
+      const meta = await fetch('/api/member/minutes/' + id);
+      if (meta.status === 401) { window.location.href = '/login.html'; return; }
+      if (!meta.ok) throw new Error('These minutes could not be found.');
+      const m = await meta.json();
+      document.getElementById('docTitle').textContent = m.title;
+      document.getElementById('docDate').textContent = 'Meeting date: ' + fmtDay(m.meeting_date);
+      document.title = m.title + ' - PENOKS Neighborhood Friends';
+
+      const res = await fetch('/api/member/minutes/' + id + '/file', { credentials: 'include' });
+      if (!res.ok) throw new Error('Could not load the document.');
+      const pdf = await pdfjsLib.getDocument({ data: await res.arrayBuffer() }).promise;
+      pdfStatus.style.display = 'none';
+
+      const container = document.getElementById('pdfPages');
+      const targetWidth = Math.min(container.clientWidth || 900, 900);
+      const dpr = window.devicePixelRatio || 1;
+      for (let n = 1; n <= pdf.numPages; n++) {
+        const page = await pdf.getPage(n);
+        const base = page.getViewport({ scale: 1 });
+        const scale = (targetWidth / base.width) * dpr;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.style.width = (viewport.width / dpr) + 'px';
+        container.appendChild(canvas);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      }
+    } catch (err) {
+      pdfStatus.textContent = err.message || 'Could not load the document.';
+    }
+  })();
+
+  // Best-effort deterrents only, same as the Club Constitution viewer.
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && (key === 'p' || key === 's')) e.preventDefault();
+  });
+</script>
+
+<%- include('partials/layout-bottom') %>

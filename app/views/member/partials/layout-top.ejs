@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= pageTitle %> - PENOKS Neighborhood Friends</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+</head>
+<body>
+
+<header class="navbar">
+  <div class="brand"><img src="/assets/logo.png" alt="PENOKS logo"></div>
+  <nav>
+    <a href="/dashboard" class="<%= active === 'dashboard' ? 'active' : '' %>">My Dashboard</a>
+    <a href="/members" class="<%= active === 'members' ? 'active' : '' %>">Member Directory</a>
+    <a href="/club-accounts" class="<%= active === 'accounts' ? 'active' : '' %>">Club Accounts</a>
+    <a href="/meeting-minutes" class="<%= active === 'minutes' ? 'active' : '' %>">Meeting Minutes</a>
+  </nav>
+  <button class="contact-btn" id="logoutBtn" style="background:none; cursor:pointer;">Log Out</button>
+</header>
+
+<div class="content" style="max-width:1000px; margin:0 auto;">

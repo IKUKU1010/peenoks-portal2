@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard - PENOKS Neighborhood Friends</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+</head>
+<body>
+
+<header class="navbar">
+  <div class="brand"><img src="/assets/logo.png" alt="PENOKS logo"></div>
+  <nav>
+    <a href="/dashboard" class="active">My Dashboard</a>
+    <a href="/members">Member Directory</a>
+    <a href="/club-accounts">Club Accounts</a>
+    <a href="/meeting-minutes">Meeting Minutes</a>
+  </nav>
+  <button class="contact-btn" id="logoutBtn" style="background:none; cursor:pointer;">Log Out</button>
+</header>
+
+<div class="content" style="max-width:1000px; margin:0 auto;">
+  <div class="dash-header">
+    <div>
+      <h1 class="serif" style="margin-bottom:4px;">Welcome, <%= fullName %></h1>
+      <p class="subtle">Member ID: <%= memberId %></p>
+    </div>
+  </div>
+
+  <div id="changePwBanner" class="card" style="display:none; background:#fbf3d9;">
+    <strong>Please set a new password.</strong> You are using a temporary password issued by the admin.
+    <a href="#" id="showChangePw" style="text-decoration:underline;">Change it now</a>.
+  </div>
+
+  <div id="changePwForm" class="card" style="display:none;">
+    <h3>Change Password</h3>
+    <div id="pwError" class="error-msg" style="display:none;"></div>
+    <div id="pwSuccess" class="success-msg" style="display:none;"></div>
+    <label>Current Password</label><input type="password" id="currentPassword">
+    <label>New Password</label><input type="password" id="newPassword">
+    <button class="btn" id="submitPwChange">Update Password</button>
+  </div>
+
+  <div class="summary-cards" style="grid-template-columns: repeat(2,1fr);">
+    <div class="summary-card">
+      <div class="num" id="totalPaid">-</div>
+      <div class="label">Total Verified Payments</div>
+    </div>
+    <div class="summary-card">
+      <div class="num" id="totalExpensed">-</div>
+      <div class="label">Total Approved Expenses</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>My Profile</h2>
+    <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; margin-top:14px;">
+      <img id="profilePhoto" alt="Profile photo" style="width:120px; height:120px; object-fit:cover; border-radius:50%; border:3px solid #145a32; background:#eee; display:none;">
+      <div class="grid-2" id="profileGrid" style="flex:1; min-width:280px;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>My Payment History</h2>
+    <table>
+      <thead><tr><th>Payment ID</th><th>Purpose</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody id="paymentsBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>My Expense Requests</h2>
+    <table>
+      <thead><tr><th>Expense ID</th><th>Purpose</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody id="expensesBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div>&copy; <span class="footer-year"></span> PENOKS Neighborhood Friends. All rights reserved.</div>
+  <div class="footer-center">Powered by: GewenchiTech</div>
+  <div class="footer-right"><a href="/privacy-policy.html">Privacy Policy</a><a href="/club-constitution.html">Club Constitution</a></div>
+</footer>
+
+<script src="/js/nav.js"></script>
+<script src="/js/footer.js"></script>
+<script>
+  function fmtMoney(n) { return '₦' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2 }); }
+  function fmtDate(d) { return new Date(d).toLocaleDateString(); }
+  function badge(status) { return `<span class="badge ${status}">${status}</span>`; }
+  function fmtDay(s) { if (!s) return '-'; const [y, m, d] = String(s).slice(0, 10).split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+  const MONTH_NAMES = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  function fmtBirthday(month, day) { return month && day ? `${MONTH_NAMES[month]} ${day}` : '-'; }
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await fetch('/api/member/logout', { method: 'POST' });
+    window.location.href = '/index.html';
+  });
+
+  async function load() {
+    const res = await fetch('/api/member/me');
+    if (!res.ok) { window.location.href = '/login.html'; return; }
+    const data = await res.json();
+
+    if (data.profile.must_change_password) {
+      document.getElementById('changePwBanner').style.display = 'block';
+    }
+
+    document.getElementById('totalPaid').textContent = fmtMoney(data.totals.total_paid);
+    document.getElementById('totalExpensed').textContent = fmtMoney(data.totals.total_expensed);
+
+    const p = data.profile;
+    const photoImg = document.getElementById('profilePhoto');
+    if (p.photo_path) {
+      const filename = p.photo_path.split('/').pop();
+      photoImg.src = `/api/member/file/photo/${filename}`;
+      photoImg.style.display = 'block';
+    } else {
+      photoImg.style.display = 'none';
+    }
+    document.getElementById('profileGrid').innerHTML = `
+      <div><label>Full Name</label><div>${p.full_name}</div></div>
+      <div><label>Member ID</label><div>${p.member_id}</div></div>
+      <div><label>Birthday</label><div>${fmtBirthday(p.birth_month, p.birth_day)}</div></div>
+      <div><label>Nationality</label><div>${p.nationality || '-'}</div></div>
+      <div><label>Occupation</label><div>${p.occupation || '-'}</div></div>
+      <div><label>Phone</label><div>${p.phone || '-'}</div></div>
+      <div><label>Email</label><div>${p.email || '-'}</div></div>
+      <div><label>Address</label><div>${p.address || '-'}</div></div>
+      <div><label>Joined</label><div>${fmtDate(p.joined_at)}</div></div>
+      <div><label>Status</label><div>${badge(p.status)}</div></div>
+    `;
+
+    document.getElementById('paymentsBody').innerHTML = data.payments.length
+      ? data.payments.map(pay => `<tr>
+          <td>${pay.payment_id}</td><td>${pay.purpose}</td><td>${fmtMoney(pay.amount)}</td>
+          <td>${badge(pay.status)}</td><td>${fmtDay(pay.payment_date)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="5">No payments submitted yet.</td></tr>';
+
+    document.getElementById('expensesBody').innerHTML = data.expenses.length
+      ? data.expenses.map(ex => `<tr>
+          <td>${ex.expense_id}</td><td>${ex.purpose}</td><td>${fmtMoney(ex.amount)}</td>
+          <td>${badge(ex.status)}</td><td>${fmtDay(ex.expense_date)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="5">No expense requests submitted yet.</td></tr>';
+  }
+
+  document.getElementById('showChangePw').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('changePwForm').style.display = 'block';
+  });
+
+  document.getElementById('submitPwChange').addEventListener('click', async () => {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const pwError = document.getElementById('pwError');
+    const pwSuccess = document.getElementById('pwSuccess');
+    pwError.style.display = 'none'; pwSuccess.style.display = 'none';
+    const res = await fetch('/api/member/change-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    const body = await res.json();
+    if (!res.ok) { pwError.textContent = body.error; pwError.style.display = 'block'; return; }
+    pwSuccess.textContent = 'Password updated successfully.';
+    pwSuccess.style.display = 'block';
+    document.getElementById('changePwBanner').style.display = 'none';
+  });
+
+  load();
+</script>
+
+</body>
+</html>

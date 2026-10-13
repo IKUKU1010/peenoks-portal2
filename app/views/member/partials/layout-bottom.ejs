@@ -1,0 +1,24 @@
+</div>
+
+<footer class="site-footer">
+  <div>&copy; <span class="footer-year"></span> PENOKS Neighborhood Friends. All rights reserved.</div>
+  <div class="footer-center">Powered by: GewenchiTech</div>
+  <div class="footer-right"><a href="/privacy-policy.html">Privacy Policy</a><a href="/club-constitution.html">Club Constitution</a></div>
+</footer>
+
+<script src="/js/nav.js"></script>
+<script src="/js/footer.js"></script>
+<script>
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await fetch('/api/member/logout', { method: 'POST' });
+    window.location.href = '/index.html';
+  });
+  function fmtMoney(n) { return '₦' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2 }); }
+  function fmtDate(d) { return new Date(d).toLocaleDateString(); }
+  function fmtDateTime(d) { return new Date(d).toLocaleString(); }
+  function badge(status) { return `<span class="badge ${status}">${status}</span>`; }
+  function fmtDay(s) { if (!s) return '-'; const [y, m, d] = String(s).slice(0, 10).split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+</script>
+
+</body>
+</html>

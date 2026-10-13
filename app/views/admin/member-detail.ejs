@@ -1,0 +1,202 @@
+<% pageTitle = 'Member Profile'; active = 'members'; %>
+<%- include('partials/layout-top', { pageTitle, active, admin }) %>
+
+<a href="/admin/members" style="text-decoration:underline;">&larr; Back to Members</a>
+
+<div id="loadingMsg" class="subtle" style="margin-top:20px;">Loading member profile...</div>
+<div id="errorBox" class="error-msg" style="display:none;"></div>
+
+<div id="detailWrap" style="display:none;">
+
+  <div class="card" style="margin-top:20px;">
+    <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
+      <img id="profilePhoto" alt="Profile photo" style="width:120px; height:120px; object-fit:cover; border-radius:50%; border:3px solid #145a32; background:#eee; display:none;">
+      <div style="flex:1; min-width:280px;">
+        <h1 class="serif" id="memberName" style="margin-bottom:4px;"></h1>
+        <p class="subtle" id="memberIdLine" style="margin-top:0;"></p>
+        <div id="statusBadge"></div>
+        <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
+          <button class="btn secondary" id="statusToggleBtn"></button>
+          <button class="btn secondary" id="tempPwBtn">Generate Temporary Password</button>
+          <button class="btn secondary" id="resetLinkBtn">Email Reset Link</button>
+          <button class="btn" id="deleteBtn" style="background:var(--danger);">Delete Member</button>
+        </div>
+        <div id="resetResult" class="success-msg" style="display:none; margin-top:14px;"></div>
+        <div id="resetError" class="error-msg" style="display:none; margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-cards" style="grid-template-columns: repeat(2,1fr);">
+    <div class="summary-card"><div class="num" id="totalPaid">-</div><div class="label">Total Verified Payments</div></div>
+    <div class="summary-card"><div class="num" id="totalExpensed">-</div><div class="label">Total Approved Expenses</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Profile Details</h2>
+    <div class="grid-2" id="profileGrid" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>Payment History</h2>
+    <table>
+      <thead><tr><th>Payment ID</th><th>Purpose</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody id="paymentsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Expense Requests</h2>
+    <table>
+      <thead><tr><th>Expense ID</th><th>Purpose</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody id="expensesBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Ledger Entries</h2>
+    <table>
+      <thead><tr><th>Date</th><th>Type</th><th>Source</th><th>Amount</th><th>Description</th><th>Status</th></tr></thead>
+      <tbody id="ledgerBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  const memberId = <%- JSON.stringify(memberId) %>;
+  let currentStatus = null;
+
+  async function load() {
+    const res = await fetch(`/api/admin/members/${encodeURIComponent(memberId)}`);
+    const errorBox = document.getElementById('errorBox');
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      errorBox.textContent = body.error || 'Could not load this member.';
+      errorBox.style.display = 'block';
+      document.getElementById('loadingMsg').style.display = 'none';
+      return;
+    }
+    const data = await res.json();
+    const p = data.profile;
+    currentStatus = p.status;
+
+    document.getElementById('loadingMsg').style.display = 'none';
+    document.getElementById('detailWrap').style.display = 'block';
+
+    document.getElementById('memberName').textContent = p.full_name;
+    document.getElementById('memberIdLine').textContent = `Member ID: ${p.member_id}`;
+    document.getElementById('statusBadge').innerHTML = badge(p.status);
+
+    const photoImg = document.getElementById('profilePhoto');
+    if (p.photo_path) {
+      photoImg.src = `/api/admin/file/photo/${p.photo_path.split('/').pop()}`;
+      photoImg.style.display = 'block';
+    }
+
+    const statusBtn = document.getElementById('statusToggleBtn');
+    statusBtn.textContent = p.status === 'active' ? 'Suspend Member' : 'Reactivate Member';
+
+    document.getElementById('totalPaid').textContent = fmtMoney(data.totals.total_paid);
+    document.getElementById('totalExpensed').textContent = fmtMoney(data.totals.total_expensed);
+
+    document.getElementById('profileGrid').innerHTML = `
+      <div><label>Full Name</label><div>${p.full_name}</div></div>
+      <div><label>Member ID</label><div>${p.member_id}</div></div>
+      <div><label>Birthday</label><div>${fmtBirthday(p.birth_month, p.birth_day)}</div></div>
+      <div><label>Nationality</label><div>${p.nationality || '-'}</div></div>
+      <div><label>Occupation</label><div>${p.occupation || '-'}</div></div>
+      <div><label>Phone</label><div>${p.phone || '-'}</div></div>
+      <div><label>Email</label><div>${p.email || '-'}</div></div>
+      <div><label>Address</label><div>${p.address || '-'}</div></div>
+      <div><label>Interests</label><div>${p.interests || '-'}</div></div>
+      <div><label>Reason for Joining</label><div>${p.reason_for_joining || '-'}</div></div>
+      <div><label>Joined</label><div>${fmtDate(p.joined_at)}</div></div>
+      <div><label>Status</label><div>${badge(p.status)}</div></div>
+    `;
+
+    document.getElementById('paymentsBody').innerHTML = data.payments.length
+      ? data.payments.map(pay => `<tr>
+          <td>${pay.payment_id}</td><td>${pay.purpose}</td><td>${fmtMoney(pay.amount)}</td>
+          <td>${badge(pay.status)}</td><td>${fmtDay(pay.payment_date)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="5">No payments submitted.</td></tr>';
+
+    document.getElementById('expensesBody').innerHTML = data.expenses.length
+      ? data.expenses.map(ex => `<tr>
+          <td>${ex.expense_id}</td><td>${ex.purpose}</td><td>${fmtMoney(ex.amount)}</td>
+          <td>${badge(ex.status)}</td><td>${fmtDay(ex.expense_date)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="5">No expense requests submitted.</td></tr>';
+
+    document.getElementById('ledgerBody').innerHTML = data.ledger.length
+      ? data.ledger.map(e => `<tr>
+          <td>${fmtDay(e.txn_date)}</td>
+          <td>${e.entry_type === 'credit' ? '<span class="badge active">Credit</span>' : '<span class="badge rejected">Debit</span>'}</td>
+          <td>${e.source_type} #${e.source_id}</td>
+          <td>${fmtMoney(e.amount)}</td>
+          <td>${e.description || '-'}</td>
+          <td>${badge(e.status)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="6">No ledger entries for this member.</td></tr>';
+  }
+
+  document.getElementById('statusToggleBtn').addEventListener('click', async () => {
+    const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+    const res = await fetch(`/api/admin/members/${encodeURIComponent(memberId)}/status`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus })
+    });
+    if (!res.ok) { const b = await res.json(); alert(b.error); return; }
+    load();
+  });
+
+  const resetResult = document.getElementById('resetResult');
+  const resetError = document.getElementById('resetError');
+
+  document.getElementById('tempPwBtn').addEventListener('click', async () => {
+    resetResult.style.display = 'none'; resetError.style.display = 'none';
+    if (!confirm(`Generate a new temporary password for ${memberId}?\n\nTheir current password will stop working immediately, and they will be asked to choose a new one at next login.`)) return;
+    const res = await fetch(`/api/admin/members/${encodeURIComponent(memberId)}/reset-password`, { method: 'POST' });
+    const body = await res.json();
+    if (!res.ok) { resetError.textContent = body.error || 'Could not reset password'; resetError.style.display = 'block'; return; }
+    resetResult.innerHTML = `New temporary password for <strong>${body.memberId}</strong>: <strong style="font-size:18px; user-select:all;">${body.tempPassword}</strong><br>Shown only once — give it to the member securely.`;
+    resetResult.style.display = 'block';
+  });
+
+  document.getElementById('resetLinkBtn').addEventListener('click', async () => {
+    resetResult.style.display = 'none'; resetError.style.display = 'none';
+    if (!confirm(`Email a password reset link to ${memberId}?\n\nThe link works once and expires in 1 hour. Their current password keeps working until they use it.`)) return;
+    const btn = document.getElementById('resetLinkBtn');
+    btn.disabled = true; btn.textContent = 'Sending...';
+    try {
+      const res = await fetch(`/api/admin/members/${encodeURIComponent(memberId)}/send-reset-link`, { method: 'POST' });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Could not send reset link');
+      resetResult.textContent = `Reset link emailed to ${body.sentTo}. It expires in 1 hour.`;
+      resetResult.style.display = 'block';
+    } catch (err) {
+      resetError.textContent = err.message; resetError.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Email Reset Link';
+    }
+  });
+
+  document.getElementById('deleteBtn').addEventListener('click', async () => {
+    const warning = `This will PERMANENTLY delete member ${memberId} and ALL of their payment, expense, and ledger records. This cannot be undone and will change the club's balance totals.\n\nType the Member ID (${memberId}) below to confirm.`;
+    const typed = prompt(warning);
+    if (typed === null) return;
+    if (typed.trim() !== memberId) {
+      alert('Member ID did not match. Nothing was deleted.');
+      return;
+    }
+    const res = await fetch(`/api/admin/members/${encodeURIComponent(memberId)}`, { method: 'DELETE' });
+    const body = await res.json();
+    if (!res.ok) { alert(body.error || 'Could not delete member'); return; }
+    alert('Member deleted.');
+    window.location.href = '/admin/members';
+  });
+
+  load();
+</script>
+
+<%- include('partials/layout-bottom') %>

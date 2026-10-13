@@ -1,0 +1,29 @@
+<% pageTitle = 'Meeting Minutes'; active = 'minutes'; %>
+<%- include('partials/layout-top', { pageTitle, active }) %>
+
+<h1 class="serif">Meeting Minutes</h1>
+<p class="subtle">View only. Select a meeting to read its minutes.</p>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Meeting Date</th><th>Title</th><th></th></tr></thead>
+    <tbody id="rows"><tr><td colspan="3">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+<script>
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  (async () => {
+    const res = await fetch('/api/member/minutes');
+    if (!res.ok) { window.location.href = '/login.html'; return; }
+    const list = await res.json();
+    document.getElementById('rows').innerHTML = list.length ? list.map(m => `
+      <tr>
+        <td>${fmtDay(m.meeting_date)}</td>
+        <td>${esc(m.title)}</td>
+        <td><a class="btn" href="/meeting-minutes/${m.minutes_id}">Read Minutes</a></td>
+      </tr>`).join('') : '<tr><td colspan="3">No meeting minutes have been published yet.</td></tr>';
+  })();
+</script>
+
+<%- include('partials/layout-bottom') %>

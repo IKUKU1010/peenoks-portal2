@@ -1,0 +1,104 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: penoks_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-penoks}
+      POSTGRES_USER: ${DB_USER:-penoks_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-penoks_admin} -d ${DB_NAME:-penoks}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: penoks_pgweb
+    restart: unless-stopped
+    ports:
+      - "8085:8081"
+    environment:
+      PGWEB_DATABASE_URL: postgres://${DB_USER:-penoks_admin}:${DB_PASSWORD}@db:5432/${DB_NAME:-penoks}?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build: ./app
+    container_name: penoks_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-penoks}
+      DB_USER: ${DB_USER:-penoks_admin}
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?set SEED_ADMIN_PASSWORD in .env}
+      APP_BASE_URL: ${APP_BASE_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      CONTACT_FROM_EMAIL: ${CONTACT_FROM_EMAIL:-}
+      CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL:-}
+      EXPORT_API_KEY: ${EXPORT_API_KEY:-}
+      LEDGER_EXPORT_DIR: /app/exports
+    volumes:
+      - uploads_data:/app/uploads
+      - ledger_exports:/app/exports:ro
+    ports:
+      - "3050:3000"
+
+  backup:
+    build: ./backup
+    container_name: penoks_backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-penoks}
+      DB_USER: ${DB_USER:-penoks_admin}
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      GDRIVE_FOLDER_ID: ${GDRIVE_FOLDER_ID:-}
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gdrive_service_account.json
+      GSHEET_ID: ${GSHEET_ID:-}
+      SHEETS_SYNC_CRON: ${SHEETS_SYNC_CRON:-*/30 * * * *}
+      DB_BACKUP_CRON: ${DB_BACKUP_CRON:-0 2 * * *}
+      ACCOUNTS_EXPORT_CRON: ${ACCOUNTS_EXPORT_CRON:-0 3 * * *}
+      LEDGER_EXPORT_CRON: ${LEDGER_EXPORT_CRON:-0 0 1 * *}
+      LEDGER_EXPORT_TZ: ${LEDGER_EXPORT_TZ:-Africa/Lagos}
+      LEDGER_EXPORT_CATCHUP: ${LEDGER_EXPORT_CATCHUP:-true}
+      LEDGER_EXPORT_DIR: /exports
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET:-}
+    volumes:
+      - ./backup/credentials/gdrive_service_account.json:/run/secrets/gdrive_service_account.json:ro
+      - backup_tmp:/tmp/penoks-backup
+      - ledger_exports:/exports
+
+volumes:
+  db_data:
+  uploads_data:
+  backup_tmp:
+  ledger_exports:

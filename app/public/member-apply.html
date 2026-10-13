@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apply for Membership - PENOKS Neighborhood Friends</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+</head>
+<body>
+
+<header class="navbar">
+  <div class="brand"><img src="/assets/logo.png" alt="PENOKS logo"></div>
+  <nav><a href="/index.html">Home</a><a href="/about.html">About</a><a href="/club-constitution.html" class="nav-cta">Club Constitution</a></nav>
+  <a class="contact-btn" href="/contact.html">Contact</a>
+</header>
+
+<div class="apply-header">
+  <h1 class="serif">Membership Application</h1>
+  <p class="subtle">Please review the <a href="/membership-requirements.pdf" target="_blank" style="text-decoration:underline;">membership requirements</a> before applying.</p>
+
+  <div class="photo-upload-box">
+    <img id="photoPreview" alt="Passport photo preview">
+    <div>Passport Photo</div>
+    <input type="file" id="passportPhotoInput" accept="image/*" style="margin:6px 0 0; padding:0; font-size:11px;">
+  </div>
+</div>
+
+<section class="page-section" style="padding-top:10px;">
+
+  <div class="stepper">
+    <div class="step-dot active" data-step="1">1. Personal</div>
+    <div class="step-dot" data-step="2">2. Contact</div>
+    <div class="step-dot" data-step="3">3. Membership</div>
+    <div class="step-dot" data-step="4">4. References</div>
+    <div class="step-dot" data-step="5">5. Declaration</div>
+    <div class="step-dot" data-step="6">7. Review &amp; Submit</div>
+  </div>
+
+  <div id="errorBox" class="error-msg" style="display:none;"></div>
+  <div id="successBox" class="success-msg" style="display:none;"></div>
+
+  <form id="applyForm">
+    <!-- Step 1: Personal Details -->
+    <div class="wizard-step active card" data-step="1">
+      <h2>Step 1 — Personal Details</h2>
+      <label>Full Name *</label><input name="fullName" required>
+      <div class="form-row">
+        <div>
+          <label>Birthday (Month) *</label>
+          <select name="birthMonth" required>
+            <option value="">Select month</option>
+            <option value="1">January</option><option value="2">February</option>
+            <option value="3">March</option><option value="4">April</option>
+            <option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option>
+            <option value="9">September</option><option value="10">October</option>
+            <option value="11">November</option><option value="12">December</option>
+          </select>
+        </div>
+        <div>
+          <label>Birthday (Day) *</label>
+          <select name="birthDay" id="birthDaySelect" required>
+            <option value="">Select day</option>
+          </select>
+        </div>
+      </div>
+      <label>Nationality *</label><input name="nationality" required>
+      <label>Occupation</label><input name="occupation">
+    </div>
+
+    <!-- Step 2: Contact Details -->
+    <div class="wizard-step card" data-step="2">
+      <h2>Step 2 — Contact Details</h2>
+      <div class="form-row">
+        <div><label>Phone *</label><input name="phone" required></div>
+        <div><label>Email *</label><input type="email" name="email" required></div>
+      </div>
+      <label>Address *</label><textarea name="address" required></textarea>
+    </div>
+
+    <!-- Step 3: Membership -->
+    <div class="wizard-step card" data-step="3">
+      <h2>Step 3 — Membership</h2>
+      <label>Interests</label><textarea name="interests" placeholder="Hobbies, community interests..."></textarea>
+      <label>Reason for Joining</label><textarea name="reasonForJoining"></textarea>
+    </div>
+
+    <!-- Step 4: References -->
+    <div class="wizard-step card" data-step="4">
+      <h2>Step 4 — References</h2>
+      <p class="subtle">Provide one or two referees who can vouch for your application.</p>
+      <div class="form-row">
+        <div><label>Referee 1 Name</label><input name="referee1Name"></div>
+        <div><label>Referee 1 Contact</label><input name="referee1Contact"></div>
+      </div>
+      <div class="form-row">
+        <div><label>Referee 2 Name</label><input name="referee2Name"></div>
+        <div><label>Referee 2 Contact</label><input name="referee2Contact"></div>
+      </div>
+    </div>
+
+    <!-- Step 5: Declaration -->
+    <div class="wizard-step card" data-step="5">
+      <h2>Step 5 — Declaration</h2>
+      <p style="max-width:650px; line-height:1.6;" class="subtle">
+        By submitting this application you confirm that the information provided is
+        accurate and agree to abide by the by-laws and code of conduct of PENOKS
+        Neighborhood Friends.
+      </p>
+      <label style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+        <input type="checkbox" id="termsAccepted" style="width:auto; margin:0;"> I accept the terms and conditions *
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+        <input type="checkbox" id="consentGiven" style="width:auto; margin:0;"> I consent to my data being stored for membership purposes *
+      </label>
+      <label>Signature (type your full name) *</label>
+      <input name="signatureText" id="signatureText">
+    </div>
+
+    <!-- Step 7 (final): Review & Submit -->
+    <div class="wizard-step card" data-step="6">
+      <h2>Step 7 — Review &amp; Submit</h2>
+      <div id="reviewSummary" style="line-height:1.8;"></div>
+    </div>
+  </form>
+
+  <div style="display:flex; justify-content:space-between; margin-top:20px;">
+    <button class="btn secondary" id="prevBtn" type="button">Back</button>
+    <button class="btn" id="nextBtn" type="button">Next</button>
+    <button class="btn" id="submitBtn" type="button" style="display:none;">Submit Application</button>
+  </div>
+
+</section>
+
+<script src="/js/apply-wizard.js"></script>
+<footer class="site-footer">
+  <div>&copy; <span class="footer-year"></span> PENOKS Neighborhood Friends. All rights reserved.</div>
+  <div class="footer-center">Powered by: GewenchiTech</div>
+  <div class="footer-right"><a href="/privacy-policy.html">Privacy Policy</a><a href="/club-constitution.html">Club Constitution</a></div>
+</footer>
+<script src="/js/nav.js"></script>
+<script src="/js/footer.js"></script>
+</body>
+</html>

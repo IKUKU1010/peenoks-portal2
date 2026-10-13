@@ -1,0 +1,30 @@
+<% pageTitle = 'Member Directory'; active = 'members'; %>
+<%- include('partials/layout-top', { pageTitle, active }) %>
+
+<h1 class="serif">Member Directory</h1>
+<p class="subtle">View only. Showing all active members of PENOKS Neighborhood Friends.</p>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Member ID</th><th>Name</th><th>Status</th><th>Member Since</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="4">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+<script>
+  async function load() {
+    const res = await fetch('/api/member/directory');
+    if (!res.ok) { window.location.href = '/login.html'; return; }
+    const rows = await res.json();
+    document.getElementById('rows').innerHTML = rows.length ? rows.map(m => `
+      <tr>
+        <td>${m.member_id}</td>
+        <td>${m.full_name}</td>
+        <td>${badge(m.status)}</td>
+        <td>${fmtDate(m.joined_at)}</td>
+      </tr>`).join('') : '<tr><td colspan="4">No members found.</td></tr>';
+  }
+  load();
+</script>
+
+<%- include('partials/layout-bottom') %>

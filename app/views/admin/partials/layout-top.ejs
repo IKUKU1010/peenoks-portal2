@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= pageTitle %> - PENOKS Admin</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+</head>
+<body>
+
+<header class="navbar">
+  <div class="brand"><img src="/assets/logo.png" alt="PENOKS logo"></div>
+  <nav><span style="opacity:.85;">Admin: <%= admin.username %></span></nav>
+  <button class="contact-btn" id="logoutBtn" style="background:none; cursor:pointer;">Log Out</button>
+</header>
+
+<div class="sidebar-layout">
+  <aside class="sidebar">
+    <a href="/admin/dashboard" class="<%= active === 'dashboard' ? 'active' : '' %>">Dashboard</a>
+    <a href="/admin/applicants" class="<%= active === 'applicants' ? 'active' : '' %>">Applicants</a>
+    <a href="/admin/members" class="<%= active === 'members' ? 'active' : '' %>">Members</a>
+    <a href="/admin/payments" class="<%= active === 'payments' ? 'active' : '' %>">Payments</a>
+    <a href="/admin/expenses" class="<%= active === 'expenses' ? 'active' : '' %>">Expenses</a>
+    <a href="/admin/accounts" class="<%= active === 'accounts' ? 'active' : '' %>">Accounts Ledger</a>
+    <a href="/admin/ledger-exports" class="<%= active === 'ledger-exports' ? 'active' : '' %>">Ledger Exports</a>
+    <a href="/admin/minutes" class="<%= active === 'minutes' ? 'active' : '' %>">Meeting Minutes</a>
+  </aside>
+  <main class="content">

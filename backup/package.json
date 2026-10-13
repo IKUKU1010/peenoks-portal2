@@ -1,0 +1,15 @@
+{
+  "name": "penoks-backup-service",
+  "version": "1.0.0",
+  "description": "Scheduled DB backups and accounts export to Google Drive for PENOKS Club Portal",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "googleapis": "^140.0.1",
+    "node-cron": "^3.0.3",
+    "pg": "^8.12.0"
+  }
+}
